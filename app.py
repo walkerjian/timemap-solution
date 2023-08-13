@@ -193,12 +193,13 @@ class TimeMapPandas:
     
     def set(self, user, key, value, time=None):
         timestamp = datetime.datetime.utcnow() if not time else time
-        new_entry = {'id': self.event_log_id_counter, 'key': key, 'value': value, 'timestamp': timestamp}
-        self.event_log = self.event_log.append(new_entry, ignore_index=True)
+        new_entry = pd.DataFrame({'id': [self.event_log_id_counter], 'key': [key], 'value': [value], 'timestamp': [timestamp]})
+        self.event_log = pd.concat([self.event_log, new_entry], ignore_index=True)
         
-        self.audit_log = self.audit_log.append({
-            'user': user.name, 'action': 'set', 'key': key, 'value': value, 'timestamp': timestamp
-        }, ignore_index=True)
+        audit_entry = pd.DataFrame({
+            'user': [user.name], 'action': ['set'], 'key': [key], 'value': [value], 'timestamp': [timestamp]
+        })
+        self.audit_log = pd.concat([self.audit_log, audit_entry], ignore_index=True)
         
         self.event_log_id_counter += 1
 
@@ -212,20 +213,22 @@ class TimeMapPandas:
         else:
             value = filtered_entries.sort_values(by='timestamp', ascending=False).iloc[0]['value']
         
-        self.audit_log = self.audit_log.append({
-            'user': user.name, 'action': 'get', 'key': key, 'value': value, 'timestamp': datetime.datetime.utcnow()
-        }, ignore_index=True)
+        audit_entry = pd.DataFrame({
+            'user': [user.name], 'action': ['get'], 'key': [key], 'value': [value], 'timestamp': [datetime.datetime.utcnow()]
+        })
+        self.audit_log = pd.concat([self.audit_log, audit_entry], ignore_index=True)
         
         return value
     
     def tombstone(self, user, key):
         timestamp = datetime.datetime.utcnow()
-        new_entry = {'id': self.event_log_id_counter, 'key': key, 'value': 'TOMBSTONED', 'timestamp': timestamp}
-        self.event_log = self.event_log.append(new_entry, ignore_index=True)
+        new_entry = pd.DataFrame({'id': [self.event_log_id_counter], 'key': [key], 'value': ['TOMBSTONED'], 'timestamp': [timestamp]})
+        self.event_log = pd.concat([self.event_log, new_entry], ignore_index=True)
         
-        self.audit_log = self.audit_log.append({
-            'user': user.name, 'action': 'tombstone', 'key': key, 'value': None, 'timestamp': timestamp
-        }, ignore_index=True)
+        audit_entry = pd.DataFrame({
+            'user': [user.name], 'action': ['tombstone'], 'key': [key], 'value': [None], 'timestamp': [timestamp]
+        })
+        self.audit_log = pd.concat([self.audit_log, audit_entry], ignore_index=True)
         
         self.event_log_id_counter += 1
 
